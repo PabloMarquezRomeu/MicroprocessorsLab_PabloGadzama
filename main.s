@@ -1,6 +1,6 @@
 #include <xc.inc>
 
-extrn	UART_Setup, UART_Transmit_Message  ; external subroutines
+extrn	UART_Setup, UART_Transmit_Message  ; external subroutines, tells the compiler it will have to access these routines from other files
 	
 psect	udata_acs   ; reserve data space in access ram
 counter:    ds 1    ; reserve one byte for a counter variable
@@ -40,10 +40,10 @@ start: 	lfsr	0, myArray	; Load FSR0 with address in RAM
 loop: 	tblrd*+			; one byte from PM to TABLAT, increment TBLPRT
 	movff	TABLAT, POSTINC0; move data from TABLAT to (FSR0), inc FSR0	
 	decfsz	counter, A		; count down to zero
-	bra	loop		; keep going until finished
+	bra	loop		; keep going until finished. When this finished all the data has moved from PM to RAM.
 		
 	movlw	myTable_l	; output message to UART
-	lfsr	2, myArray
+	lfsr	2, myArray	; Make FSR2 point to my array in RAM
 	call	UART_Transmit_Message
 
 	goto	$		; goto current line in code

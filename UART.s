@@ -1,6 +1,6 @@
 #include <xc.inc>
     
-global  UART_Setup, UART_Transmit_Message
+global  UART_Setup, UART_Transmit_Message, UART_counter ;Tells the compiler that it needs to help other files find here these are stored
 
 psect	udata_acs   ; reserve data space in access ram
 UART_counter: ds    1	    ; reserve 1 byte for variable UART_counter
