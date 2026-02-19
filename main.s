@@ -1,17 +1,20 @@
 #include <xc.inc>
+#include "tblptr_macros.inc"  ;This would allow us to write TBLPTR_POINT_TO rowA
 
-global	matrixA, matrixB, matrixC
+global	matrixA, matrixB, matrixC, rowA, runningSum
     
 psect	udata_acs
-matrix_count:	ds 1 ;reserve on byte in access ram
+matrix_count:	ds 1 ;reserve one byte in access ram
 counter:	ds 2
-
-psect	udata_bank4 
-runningSum:	ds 0x08 ;reserve 8 bytes in bank 4 in ram
+runningSum:	ds 0x02 ;reserve 2 bytes in bank 4 in ram for the 16bit result of an 8 bit multiplication
+    
+psect	udata_bank5
+rowA:		ds 0x03 ;reserve 3 bytes in ram
+columnB:	ds 0x03 ;reserve 3 bytes in ram
 
 psect	data ;stores data in PM
 matrixA:
-    db	0x01, 0x02, 0x01
+    db	0x03, 0x02, 0x01
     db	0x02, 0x01, 0x02
     db	0x01, 0x02, 0x01
     matrix_l EQU 3
@@ -19,7 +22,7 @@ matrixA:
 
 psect	data ;stores data in PM
 matrixB:
-    db	0x01, 0x01, 0x01
+    db	0x01, 0x02, 0x03
     db	0x01, 0x01, 0x01
     db	0x01, 0x01, 0x01
     align   2
@@ -35,57 +38,55 @@ psect code, abs  ;eerything that follows this psect will be stored as executable
 rst:	org 0x0
     goto    setup  ;So we place the command 'goto setup' in 0x0
     
-
-
 	; ******* Programme FLASH read Setup Code ****  
 setup:	
 	bcf	CFGS	; point to Flash program memory  
 	bsf	EEPGD 	; access Flash program memory
 	goto	start
 
-	; ******* Big Delay Loop *********************
-bigdelay:
-	movlw   0x00		; W=0
-dloop:	decf	0x11, f, A	; no cary when 0x00 is 0xff
-	subwfb  0x10, f, A	; no carry when 0x00 is 0xff
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	bc dloop		; if carry loop again
-	return			; carry not set so return
+	; This function writes whatever is in he TABLAT pointer to the FSR0 pointer. It writes the number of bits that we give counter
+writeloop:			
+	tblrd*+			; move one byte from PM to TABLAT, increment TBLPRT
+	movff	TABLAT, POSTINC0
+	decfsz	counter, A
+	bra	writeloop
+	
+	return
+
 	; ******* Main programme *********************
 start:	
-	;lfsr	0, myArray	; Load FSR0 with address in RAM	
-	movlw	low highword(matrixA)	; address of data in PM
-	movwf	TBLPTRU, A	; load upper bits to TBLPTRU
-	movlw	high(matrixA)	; address of data in PM
-	movwf	TBLPTRH, A	; load high byte to TBLPTRH
-	movlw	low(matrixA)	; address of data in PM
-	movwf	TBLPTRL, A	; load low byte to TBLPTRL
-	movlw	9		; 9 bytes to read
+	clrf	runningSum, A
+	clrf	runningSum+1, A
+	
+	TBLPTR_POINT_TO matrixA
+	movlw	matrix_l	; 3 bytes to read
 	movwf 	counter, A	; our counter register
-	movlw   0x00		; initialising port D
-	movwf   TRISD, A	; setting port D as a output
+	lfsr	0, rowA
+	call	writeloop	; write from matrixA in PM to rowA in RAM
+	
+	TBLPTR_POINT_TO matrixB
+	movlw	matrix_l	; 3 bytes to read
+	movwf 	counter, A	; our counter register
+	lfsr	0, columnB	; load columnB onto FSR0
+	call	writeloop	; write from matrixB in PM to column B in RAM
+	
+	movlw	matrix_l	; 3 bytes to read
+	movwf 	counter, A	; our counter register for the MACloop
+	lfsr	0, rowA		; load row A onto FSR0
+	lfsr	1, columnB	; load columnB onto FSR1
 
 	
-loop:
-	tblrd*+			; move one byte from PM to TABLAT, increment TBLPRT
-	movff	TABLAT, PORTD	; move read data from TABLAT to (FSR0), increment FSR0
+MACloop:
 
-	movlw	high(0xFFFF)	; load 16 bit number into address for big delay
-	movwf	0x10, A		; FR 0x10
-	movlw	low(0xFFFF)		
-	movwf	0x11, A		; nd FR 0x11
-	call	bigdelay	; call a long delay
-	call	bigdelay
-	call    bigdelay
+	movf	POSTINC0, W	; move FSR0 to working
+	mulwf	POSTINC1	; multiply workin with FSR1. 8bit multiplication in this case, so 16bit result
+	movf	PRODL, W, A	; Move low result to working nd add it to low runnin sum byte
+	addwf	runningSum, F, A
+	movf	PRODH, W, A	; Move high result to working and add it to high running sum byte
+	addwfc	runningSum+1, F, A
+
 	decfsz	counter, A	; count down to zero
-	bra	loop		; keep going until finished
-	
-	goto	0
+	bra	MACloop		; keep going until finished
+
 
 	end	rst
