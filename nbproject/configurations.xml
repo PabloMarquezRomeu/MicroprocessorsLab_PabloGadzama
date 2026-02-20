@@ -20,6 +20,7 @@
       <itemPath>config.s</itemPath>
       <itemPath>main.s</itemPath>
     </logicalFolder>
+    <itemPath>MVM.s</itemPath>
   </logicalFolder>
   <projectmakefile>Makefile</projectmakefile>
   <confs>

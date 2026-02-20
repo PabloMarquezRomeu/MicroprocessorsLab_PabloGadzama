@@ -1,7 +1,8 @@
 #include <xc.inc>
 #include "tblptr_macros.inc"  ;This would allow us to write TBLPTR_POINT_TO rowA
 
-global	matrixA, matrixB, matrixC, rowA, runningSum
+
+global	columnB, rowA, runningSum
     
 psect	udata_acs
 matrix_count:	ds 1 ;reserve one byte in access ram
@@ -55,6 +56,10 @@ writeloop:
 
 	; ******* Main programme *********************
 start:	
+	;Point FSR0 to temporary matrixA row
+	;Point FSR1 to vectorX in RAM
+	;Length is defined as a global variable
+	;call MVMLoop
 	clrf	runningSum, A
 	clrf	runningSum+1, A
 	
