@@ -1,3 +1,6 @@
+ 
+matrix_l    EQU 3
+    
 TBLPTR_POINT_TO macro label
     movlw   low highword(label)	; address of data in PM
     movwf   TBLPTRU, A	; load upper bits to TBLPTRU
