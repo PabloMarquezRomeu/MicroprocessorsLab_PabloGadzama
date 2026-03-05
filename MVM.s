@@ -2,9 +2,9 @@
 #include "tblptr_macros.inc"
     ;This file contains a MVMLoop that will use the functions PMRAMCopy etc...
 
-global  initMAC, computationMAC
+global  initMAC, computationMAC, vectorX, vectorY, coeffs, x_buffer
 
-    
+
 psect	udata_acs ;Reserves UNDEFINED data in access ram (start of ram)
 buffer_address:	ds 1 ;circular pointer around the buffer to write new signal value
 MAC_address:	ds 1 ;loops over the 8 values of the buffer for the MAC
@@ -23,9 +23,9 @@ vectorY:	ds signal_l
 
 psect	data ;stores data in PM
 vectorX_PM:
-    db	0x00, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E
-vectorY:
-    db	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    db	0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E
+vectorY_PM:
+    db	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 coeffs_PM:
     db	0x01, 0x02, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00
     align   2
@@ -60,8 +60,7 @@ computationMAC:
     movf    buffer_address, W, A
     addwf   FSR0L, F, A
     movlw   0x00
-    addwfc  FSR0H, F, A ;Since addresses are 16bit, we add with carry into the high byte of the address, if there is overflow the pointer stays correct
-    movwf   INDF0, A ;---------------------------------------------------------------------
+    addwfc  FSR0H, F, A ;Since addresses are 16bit, we add with carry into the high byte of the address, if there is overflow the pointer stays correct-----
     
     movf    POSTINC2, W, A ;Move new signal value to Working
     movwf   INDF0, A	;Write new signal onto circular buffer
@@ -70,17 +69,58 @@ computationMAC:
     movlw   buffer_mask
     andwf   buffer_address, F, A ;--------------------------------------------------------------------------------------------------
     
- 
     call    MACOperation
 
+    lfsr    0, vectorY ;Point FSR0 now to the correct position in vectorY------------------------------------------------------------------------
+    movf    vectorY_address, W, A
+    addwf   FSR0L, F, A
+    movlw   0x00
+    addwfc  FSR0H, F, A;-----------------------------------------------------------------------------------------------------------------------
     
-    
-    
+    movf    runningSum, W, A ;FOR NOW ONLY STORING THE LOW BYTE OF THE MULTIPLICATION, MUST CHANGE TO BOTH BYTES AFTER
+    movwf   INDF0, A
+    incf    vectorY_address, F, A ;Advance y_index
+
     decfsz  counter_signal, A	; count down to zero
-    bra	    operateMAC	; keep going until finished
+    bra	    computationMAC	; keep going until finished with all the signal
     
     return
+
+
+MACOperation:
+    clrf    runningSum, A ;Important to clear as when ram is initialised it will have random numbers
+    clrf    runningSum+1, A
     
+    lfsr    1, coeffs ;FSR0 loops through coefficients
+    
+    movlw   buffer_l ;Setup counter to help us loop through the 8 numbers in the buffer
+    movwf   counter_MAC, A
+    
+    clrf    MAC_address, A ;Initialises the counter to loop through the buffer from OLDEST to NEWEST
+
+    
+MACLoop:
+    ; THIS LOOP IS GOING TO GO FROM NEWEST TO OLDEST IN THE BUFFER
+    movf    buffer_address, W, A ; Compute x_index = (buffer_address - 1 - MAC_address)MOD8
+    addlw   0xFF         ;These lines essentially find an x_index 
+    movwf   tmpW, A           
+    movf    MAC_address, W, A
+    subwf   tmpW, W, A  ;Safe subtraction      
+    andlw   buffer_mask ;------------------------------------------------------------------------------------------------------------------------------------------------         
+    
+    lfsr    0, x_buffer ;Point FSR0 to the new calculated address above x_index--------------
+    addwf   FSR0L, F, A
+    movlw   0x00
+    addwfc  FSR0H, F, A;------------------------------------------------------------------------------------------------------------------------------------------------         
+    
+    call    Multiply ;This will multiply FSR1 and FSR0 and store it in runningSum
+
+    incf    MAC_address, F, A ;Advance MAC_address to loop through the buffer
+    decfsz  counter_MAC, A ; count down to zero to exit loop when weve done 8 operations
+    bra	    MACLoop	; keep going until finished
+    
+    return
+
     
 PMRAMCopy:
     tblrd*+			; move one byte from PM to TABLAT, increment TBLPRT
@@ -90,31 +130,12 @@ PMRAMCopy:
     
     return
     
+Multiply:
+    movf    INDF0, W, A   ; Move buffer value to working
+    mulwf   POSTINC1, A   ; Multiplies FSR1 with Working, coefficient with buffer value
+    movf    PRODL, W, A ;Stores the result into runningSum
+    addwf   runningSum, F, A
+    movf    PRODH, W, A
+    addwfc  runningSum+1, F, A
     
-MACOperation:
-    clrf    runningSum, A ;Important to clear as when ram is initialised it will have random numbers
-    clrf    runningSum+1, A
-    
-    lfsr    1, coeffs ;FSR0 loops through coefficients
-    
-    movlw   buffer_l
-    movwf   counter_MAC, A
-    
-    clrf    mac_address, A ;Initialises the counter to loop through the buffer from OLDEST to NEWEST
-    
-MACLoop:
-    ; THIS LOOP IS GOING TO GO FROM OLDEST TO NEWEST IN THE BUFFER
-    
-    
-    decfsz  counter_MAC, A	; count down to zero
-    bra	    MACLoop	; keep going until finished
-    
-    return
-
-
-clearVariable:
-    clrf    POSTINC2, A
-    decfsz  counter, A
-    bra	    clearVariable
-
     return

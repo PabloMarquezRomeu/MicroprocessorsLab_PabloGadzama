@@ -12,11 +12,11 @@ rst:	org 0x0
 setup:	
 	bcf	CFGS	; point to Flash program memory  
 	bsf	EEPGD 	; access Flash program memory
+	call	initMAC 
 	goto	start
 
 	; ******* Main programme *********************
 start:	
-	call	initMAC
 	call	computationMAC ;This function will result in the whole filtered vector in vectorY in RAM.
 	nop
 	nop
