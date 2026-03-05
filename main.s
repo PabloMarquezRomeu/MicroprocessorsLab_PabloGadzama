@@ -1,7 +1,7 @@
 #include <xc.inc>
 #include "tblptr_macros.inc"  
 
-extrn	MVMLoop, matrixA, vectorX, vectorY, rowA, runningSum, counter, matrix_count	    ;Subroutines from other files
+extrn	initMAC, computationMAC	    ;Subroutines from other files
     
 
 psect code, abs  ;eerything that follows this psect will be stored as executable code in PM. The abs means that we will literally choose where to store this.
@@ -16,10 +16,8 @@ setup:
 
 	; ******* Main programme *********************
 start:	
-	
-	movlw   signal_l	; 3 bytes to read
-	movwf   matrix_count, A
-	call	MVMLoop ;This function will use FSR0, 1, 2 to multiply the matrix A stored in PM with the vector X stored in RAM, and will output the result in RAM
+	call	initMAC
+	call	computationMAC ;This function will result in the whole filtered vector in vectorY in RAM.
 	nop
 	nop
 	end rst
