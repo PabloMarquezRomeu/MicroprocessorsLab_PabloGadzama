@@ -1,5 +1,8 @@
 	#include <xc.inc>
 	
+	extern myTable
+	extern myTable_len
+	
 psect	code, abs
 main:
 	org 0x0
@@ -13,14 +16,20 @@ setup:
 	bsf	EEPGD 	; access Flash program memory
 	goto	start
 	; ******* My data and where to put it in RAM *
-myTable:
-	db	'T','h','i','s',' ','i','s',' ','j','u','s','t'
-	db	' ','s','o','m','e',' ','d','a','t','a'
-	myArray EQU 0x400	; Address in RAM for data
-	counter EQU 0x10	; Address of counter variable
-	align	2		; ensure alignment of subsequent instructions 
+;psect flash_data, class = CODE, space=0
+ 
+;myTable:
+	;myTable:
+	     ;table from pyhon, just taken fro  python crpt that gnerates this the old fashion way
+	;db 252,3,0, 6, 249, 5, 0 ,250, 12, 242, 11, 0, 230, 127,127
+	;db 230, 0, 11, 242, 12, 250, 0, 5, 249, 6, 253, 0 , 0, 252
+	;myArray EQU 0x400	; Address in RAM for data
+	;counter EQU 0x10	; Address of counter variable
+	;align	2		; ensure alignment of subsequent instructions 
 	; ******* Main programme *********************
 start:	
+	movlw  myTable_len
+	movwf  counter
 	lfsr	0, myArray	; Load FSR0 with address in RAM	
 	movlw	low highword(myTable)	; address of data in PM
 	movwf	TBLPTRU, A	; load upper bits to TBLPTRU
