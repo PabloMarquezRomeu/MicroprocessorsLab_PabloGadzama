@@ -16,15 +16,8 @@ setup:
 
 	; ******* Main programme *********************
 start:	
-	movlb   5; Point to bank 5. I have to do this for now, but hopefully this is where the data from the sensor will be stored
-	movlw	0x01 
-	movwf	vectorX, B
-	movlw	0x02
-	movwf	vectorX+1, B
-	movlw	0x03
-	movwf	vectorX+2, B
 	
-	movlw   matrix_l	; 3 bytes to read
+	movlw   signal_l	; 3 bytes to read
 	movwf   matrix_count, A
 	call	MVMLoop ;This function will use FSR0, 1, 2 to multiply the matrix A stored in PM with the vector X stored in RAM, and will output the result in RAM
 	nop
