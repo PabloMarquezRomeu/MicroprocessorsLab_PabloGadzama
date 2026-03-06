@@ -12,22 +12,22 @@ vectorY_address:ds 1 ;Points to the vector y to write after the MAC operation
 counter_signal:	ds 1 ; counter to loop over the entire signal
 counter_MAC:	ds 1 ;counter to loop over the 8 multiplies for the MAC operation
 copy_counter:	ds 1 ;counter to copy from PM to RAM
-runningSum:	ds 0x02 ;reserve 2 bytes in ram for the 16bit result of an 8 bit multiplication
+runningSum:	ds 0x02 ;reserve 2 bytes in ram for the 24bit result of an 8 bit multiplication
 tmpW:		ds 1 ;Temp storage for the multiplication
 
 psect	udata_bank5 ;Reserves UNDEFINED data specifically in RAM bank 5
 x_buffer:	ds buffer_l ;fifo Circular buffer 
 coeffs:		ds buffer_l ;reserve bytes in ram
 vectorX:	ds signal_l
-vectorY:	ds signal_l
+vectorY:	ds (2*signal_l)
 
 psect	data ;stores data in PM
 vectorX_PM:
-    db	0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E
+    db	0xF0, 0xE8, 0xDC, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E
 vectorY_PM:
     db	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 coeffs_PM:
-    db	0x01, 0x02, 0x03, 0x00, 0x00, 0x00, 0x00, 0x03
+    db	0xFA, 0xF0, 0xE0, 0x00, 0x00, 0x00, 0x00, 0x03
     align   2
 
 
@@ -47,6 +47,10 @@ initMAC:
     
     clrf    buffer_address, A
     clrf    vectorY_address, A
+    lfsr    0, x_buffer
+    movlw   buffer_l
+    movwf   counter_MAC, A
+    call    clearBuffer
     
     lfsr    2, vectorX ;Points FSR2 to vectorX to load in the new signals
     movlw   signal_l
@@ -77,9 +81,12 @@ computationMAC:
     movlw   0x00
     addwfc  FSR0H, F, A;-----------------------------------------------------------------------------------------------------------------------
     
-    movf    runningSum, W, A ;FOR NOW ONLY STORING THE LOW BYTE OF THE MULTIPLICATION, MUST CHANGE TO BOTH BYTES AFTER
+    movf    runningSum+1, W, A ;Write the 2 bytes from running sum onto vectorY-------------------------------------------
+    movwf   POSTINC0, A 
+    movf    runningSum, W, A ;This is the low byte, we store the high byte first in our vectorY.
     movwf   INDF0, A
-    incf    vectorY_address, F, A ;Advance y_index
+    incf    vectorY_address, F, A ;First increase of y_index
+    incf    vectorY_address, F, A ;Advance y_index again, so in total it has advanced 2.-----------------------------------
 
     decfsz  counter_signal, A	; count down to zero
     bra	    computationMAC	; keep going until finished with all the signal
@@ -133,9 +140,27 @@ PMRAMCopy:
 Multiply:
     movf    INDF0, W, A   ; Move buffer value to working
     mulwf   POSTINC1, A   ; Multiplies FSR1 with Working, coefficient with buffer value
+    
+    bcf     STATUS, 0, A ;These lines do a divide by 8 (3 bit shift) to ensure no overflow of the runningSum --------------
+    rrcf    PRODH, F, A
+    rrcf    PRODL, F, A
+    bcf	    STATUS, 0, A ;This sets the carry bit to 0
+    rrcf    PRODH, F, A
+    rrcf    PRODL, F, A   
+    bcf	    STATUS, 0, A
+    rrcf    PRODH, F, A
+    rrcf    PRODL, F, A ;--------------------------------------------------------------------------------------------------
+    
     movf    PRODL, W, A ;Stores the result into runningSum
     addwf   runningSum, F, A
     movf    PRODH, W, A
     addwfc  runningSum+1, F, A
+    
+    return
+
+clearBuffer:
+    clrf    POSTINC0, A
+    decfsz  counter_MAC, A
+    bra	    clearBuffer
     
     return
