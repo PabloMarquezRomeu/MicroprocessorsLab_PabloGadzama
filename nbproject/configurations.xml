@@ -19,8 +19,8 @@
                    projectFiles="true">
       <itemPath>config.s</itemPath>
       <itemPath>main.s</itemPath>
+      <itemPath>sinc.s</itemPath>
     </logicalFolder>
-    <itemPath>sinc.s</itemPath>
   </logicalFolder>
   <projectmakefile>Makefile</projectmakefile>
   <confs>
