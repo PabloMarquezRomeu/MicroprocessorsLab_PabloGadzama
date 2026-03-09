@@ -1,9 +1,10 @@
 #include <xc.inc>
     
 global  UART_Setup, UART_Transmit_Message, UART_counter ;Tells the compiler that it needs to help other files find here these are stored
-
+extrn   Sinc_x_l_high, Sinc_x_l_low
+    
 psect	udata_acs   ; reserve data space in access ram
-UART_counter: ds    1	    ; reserve 1 byte for variable UART_counter
+UART_counter: ds    2	    ; reserve 1 byte for variable UART_counter
 
 psect	uart_code,class=CODE
 UART_Setup:
@@ -19,11 +20,19 @@ UART_Setup:
     return
 
 UART_Transmit_Message:	    ; Message stored at FSR2, length stored in W
+    movlw   Sinc_x_l_high
     movwf   UART_counter, A
+    movlw   Sinc_x_l_low
+    movwf   UART_counter+1, A
+    
 UART_Loop_message:
-    movf    POSTINC2, W, A
+    tblrd*+
+    movf    TABLAT, W, A
     call    UART_Transmit_Byte
-    decfsz  UART_counter, A
+    
+    decfsz  UART_counter, F, A
+    bra	    UART_Loop_message
+    decfsz  UART_counter+1, F, A
     bra	    UART_Loop_message
     return
 

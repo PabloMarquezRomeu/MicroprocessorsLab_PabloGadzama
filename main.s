@@ -1,7 +1,7 @@
 #include <xc.inc>
 
 extrn	UART_Setup, UART_Transmit_Message ; external subroutines
-extrn   Sinc_x, Sinc_x_l
+extrn   Sinc_x, Sinc_x_l_high, Sinc_x_l_low
 global myArray
 
 psect	udata_acs   ; reserve data space in access ram
@@ -23,22 +23,14 @@ setup:	bcf	CFGS	; point to Flash program memory
 	goto	start
 	
 	; ******* Main programme ****************************************
-start: 	lfsr	0, myArray	; Load FSR0 with address in RAM	
+start: 	
 	movlw	low highword(Sinc_x)	; address of data in PM
 	movwf	TBLPTRU, A		; load upper bits to TBLPTRU
 	movlw	high(Sinc_x)	; address of data in PM
 	movwf	TBLPTRH, A		; load high byte to TBLPTRH
 	movlw	low(Sinc_x)	; address of data in PM
 	movwf	TBLPTRL, A		; load low byte to TBLPTRL
-	movlw	Sinc_x_l	; bytes to read
-	movwf 	counter, A		; our counter register
-loop: 	tblrd*+			; one byte from PM to TABLAT, increment TBLPRT
-	movff	TABLAT, POSTINC0; move data from TABLAT to (FSR0), inc FSR0	
-	decfsz	counter, A		; count down to zero
-	bra	loop		; keep going until finished
-		
-	movlw	Sinc_x_l	; output message to UART
-	lfsr	2, myArray
+	
 	call	UART_Transmit_Message
 
 	goto	$		; goto current line in code
