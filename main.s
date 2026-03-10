@@ -1,7 +1,7 @@
 #include <xc.inc>
 #include "tblptr_macros.inc"  
 
-extrn	initMAC, computationMAC	    ;Subroutines from other files
+extrn	initMAC, computationMAC, UART_Setup	    ;Subroutines from other files
     
 
 psect code, abs  ;eerything that follows this psect will be stored as executable code in PM. The abs means that we will literally choose where to store this.
@@ -12,13 +12,15 @@ rst:	org 0x0
 setup:	
 	bcf	CFGS	; point to Flash program memory  
 	bsf	EEPGD 	; access Flash program memory
+	call	UART_Setup
 	call	initMAC 
 	goto	start
 
 	; ******* Main programme *********************
 start:	
-	call	computationMAC ;This function will result in the whole filtered vector in vectorY in RAM.
+	call	computationMAC ;This function will result in the whole filtered vector sent through uart to the pc.
 	nop
 	nop
+	goto	$
 	end rst
 	
