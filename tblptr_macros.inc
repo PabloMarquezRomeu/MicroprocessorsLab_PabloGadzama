@@ -1,5 +1,5 @@
  
-signal_l    EQU 1000
+signal_l    EQU 4000
 buffer_l    EQU 8
 buffer_mask EQU 7 ;This mask allows us to do MOD8 on the counters by only taking the lowest three bits
 	    

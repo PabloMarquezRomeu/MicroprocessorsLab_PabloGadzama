@@ -20,7 +20,9 @@
       <itemPath>config.s</itemPath>
       <itemPath>main.s</itemPath>
       <itemPath>UART.s</itemPath>
+      <itemPath>Timer0.s</itemPath>
     </logicalFolder>
+    <itemPath>MVM.s</itemPath>
     <itemPath>MVM.s</itemPath>
   </logicalFolder>
   <sourceRootList>
