@@ -1,16 +1,7 @@
 #include <xc.inc>
 
 extrn	UART_Setup, UART_Transmit_Message ; external subroutines
-extrn   Sinc_x, Sinc_x_l_high, Sinc_x_l_low
-global myArray
-
-psect	udata_acs   ; reserve data space in access ram
-counter:    ds 1    ; reserve one byte for a counter variable
-delay_count:ds 1    ; reserve one byte for counter in the delay routine
-    
-psect	udata ; reserve data anywhere in RAM (here at 0x400)
-myArray:    ds 7 ;0x80 ; reserve 128 bytes for message data
-
+extrn   Sinc_x
 
 psect	code, abs	
 rst: 	org 0x0
@@ -35,9 +26,3 @@ start:
 
 	goto	$		; goto current line in code
 
-	; a delay subroutine if you need one, times around loop in delay_count
-delay:	decfsz	delay_count, A	; decrement until zero
-	bra	delay
-	return
-
-	end	rst
