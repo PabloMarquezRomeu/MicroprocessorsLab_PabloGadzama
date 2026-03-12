@@ -21,7 +21,8 @@
       <itemPath>main.s</itemPath>
       <itemPath>3_tap_avg.s</itemPath>
       <itemPath>8_tap_avg.s</itemPath>
-      <itemPath>MAT_lowp.s</itemPath>
+      <itemPath>Window_8tap.s</itemPath>
+      <itemPath>Remez_8tap.s</itemPath>
     </logicalFolder>
     <itemPath>MVM.s</itemPath>
   </logicalFolder>
