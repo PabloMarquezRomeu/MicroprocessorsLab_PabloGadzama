@@ -13,7 +13,7 @@ counter_MAC:	ds 1 ;counter to loop over the 8 multiplies for the MAC operation
 copy_counter:	ds 1 ;counter to copy from PM to RAM
 runningSum:	ds 0x02 ;reserve 2 bytes in ram for the 24bit result of an 8 bit multiplication
 tmpW:		ds 1 ;Temp storage for the multiplication
-    
+   
 
 psect	udata_bank5 ;Reserves UNDEFINED data specifically in RAM bank 5
 x_buffer:	ds buffer_l ;fifo Circular buffer 
@@ -138,15 +138,15 @@ Multiply:
     movf    INDF0, W, A   ; Move buffer value to working
     mulwf   POSTINC1, A   ; Multiplies FSR1 with Working, coefficient with buffer value
     
-    bcf     STATUS, 0, A ;These lines do a divide by 8 (3 bit shift) to ensure no overflow of the runningSum --------------
-    rrcf    PRODH, F, A
-    rrcf    PRODL, F, A
-    bcf	    STATUS, 0, A ;This sets the carry bit to 0
-    rrcf    PRODH, F, A
-    rrcf    PRODL, F, A   
-    bcf	    STATUS, 0, A
-    rrcf    PRODH, F, A
-    rrcf    PRODL, F, A ;--------------------------------------------------------------------------------------------------
+    ;bcf     STATUS, 0, A ;These lines do a divide by 8 (3 bit shift) to ensure no overflow of the runningSum --------------
+    ;rrcf    PRODH, F, A
+    ;rrcf    PRODL, F, A
+    ;bcf	    STATUS, 0, A ;This sets the carry bit to 0
+    ;rrcf    PRODH, F, A
+    ;rrcf    PRODL, F, A   
+    ;bcf	    STATUS, 0, A
+    ;rrcf    PRODH, F, A
+    ;rrcf    PRODL, F, A ;--------------------------------------------------------------------------------------------------
     
     movf    PRODL, W, A ;Stores the result into runningSum
     addwf   runningSum, F, A
