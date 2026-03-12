@@ -23,6 +23,8 @@
       <itemPath>8_tap_avg.s</itemPath>
       <itemPath>Window_8tap.s</itemPath>
       <itemPath>Remez_8tap.s</itemPath>
+      <itemPath>least_squares_8tap.s</itemPath>
+      <itemPath>Blackmn_window_8tap.s</itemPath>
     </logicalFolder>
     <itemPath>MVM.s</itemPath>
   </logicalFolder>
