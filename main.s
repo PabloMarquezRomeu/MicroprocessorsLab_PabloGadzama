@@ -17,6 +17,10 @@ setup:
 	bsf	EEPGD 	; access Flash program memory
 	call	UART_Setup
 	call	initMAC 
+	
+	movlw	0x00
+	movwf	TRISD, A
+	
 	goto	start
 
 	; ******* Main programme *********************
